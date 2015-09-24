@@ -2,60 +2,43 @@ package main
 
 import (
 	"bufio"
-	"encoding/csv"
-	"fmt"
 	"net"
-	"os"
 )
 
-const (
-	CONN_HOST = "localhost"
-	CONN_PORT = "3333"
-	CONN_TYPE = "tcp"
+type (
+	Client struct {
+		conn net.Conn
+	}
 )
 
-// NOT WORKING YET. THE MESSAGES ARE NOT SEPARATED
-func main() {
-	conn, err := net.Dial(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
-	defer conn.Close()
-	checkErrorC(err)
-
-	//go handleClientRequest(conn)
-
-	go readCsv("/Users/francois/projects/go/src/revinate.com/bloom/tripadvisorUrlsSmall.csv", conn)
+// Creates a new TCP Client
+func NewClient(dsn string) (*Client, error) {
+	conn, err := net.Dial("tcp", dsn)
+	if err != nil {
+		return nil, err
+	}
+	return &Client{conn: conn}, nil
 }
 
-func readCsv(filePath string, conn net.Conn) {
-
-	csvfile, err := os.Open(filePath)
-	defer csvfile.Close()
-
-	checkErrorC(err)
-
-	reader := csv.NewReader(csvfile)
-	rawCSVdata, err := reader.ReadAll()
-	checkErrorC(err)
-
-	writer := bufio.NewWriter(conn)
-	for n, each := range rawCSVdata {
-		writer.WriteString(each[0] + "\n")
-		if n%100 == 0 {
-			writer.Flush()
-		}
+// If response is 1, the item might be in the filter
+// If response is 0, the item is definitely not in the filter
+func (c *Client) Test(item string) (bool, error) {
+	writer := bufio.NewWriter(c.conn)
+	_, err := writer.WriteString(item + "\n")
+	if err != nil {
+		return false, err
 	}
 	writer.Flush()
+	buf := make([]byte, 1024)
+	n, err := c.conn.Read(buf)
+	return (buf[0:n] == "200"), err
 }
 
-//func handleClientRequest(conn net.Conn) {
-//	buf := make([]byte, 4096)
-//	n, err := conn.Read(buf)
-//	fmt.Println(string(buf[0:n]))
-//	checkErrorC(err)
-//}
-
-func checkErrorC(err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s", err.Error())
-		os.Exit(1)
-	}
+func (c *Client) Add(item string) (bool, error) {
+	writer := bufio.NewWriter(c.conn)
+	_, err := writer.WriteString(item + "\n")
+	writer.Flush()
+	buf := make([]byte, 1024)
+	n, err := c.conn.Read(buf)
+	return (buf[0:n] == "201"), err
 }

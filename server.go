@@ -91,7 +91,9 @@ func (c *ClientConn) writeResponse(request []byte) {
 	message := bytes.Split(request, []byte{'|'})
 	var response []byte
 	if len(message) != 2 {
-		response = []byte("400|Malformed request\n" + string(request))
+		response = []byte("400|Malformed request\n Usage: ADD|ElementToAdd or TEST|ElementToTest\n")
+		c.conn.Write(response)
+		return
 	}
 
 	verb := string(message[0])

@@ -82,7 +82,11 @@ func handleConn(c *ClientConn) {
 	c.conn.Close()
 }
 
-// Write the response from the request
+// The request should be of format
+// ADD|ElementToAdd\n
+// TEST|AmIHere
+// writes back 200|true if the element is probably in the bloom filter
+// writes back 200|false is the element is definitely not in the bloom filter
 func (c *ClientConn) writeResponse(request []byte) {
 	message := bytes.Split(request, []byte{'|'})
 	var response []byte

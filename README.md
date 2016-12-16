@@ -1,59 +1,31 @@
-Bloom filter over TCP
----------------------
+Bloomcached
+-----------
 
-See:
+This is a bloom filter + Memcached. A bloom filter server with a simple TCP protocol similar to Memcached.
+
+The bloom filter server is based on the work of https://github.com/willf/bloom. 
+
+## Usage
+
+```
+go run server.go         				# Starts a default sever on port 3333
+echo "ADD|hello" | nc localhost 3333    # Returns 201
+echo "TEST|hello" | nc localhost 3333   # Returns 200|true
+echo "TEST|new" | nc localhost 3333     # Returns 200|false
+echo "ADD|new" | nc localhost 3333      # Returns 201
+echo "TEST|new" | nc localhost 3333     # Returns 200|true
+```
+
+There is a simple client in Go, you can run the tests with `go test`
 
 
+## Bloom Filter
+See [here](https://www.jasondavies.com/bloomfilter/) for a nice explanation. Basically a bloom filter allows two operations, *add* and *test*. Test can tell for sure that an element is not in the bloomfilter. It can tell that the element may be in the filter. 
 
-Bloom filters
--------------
+The main advantage of the bloomfilter is that it takes a very limited space. 
 
-A Bloom filter is a representation of a set of _n_ items, where the main
-requirement is to make membership queries; _i.e._, whether an item is a 
-member of a set.
+## Client
+The client is a pretty simple TCP client, inspired from the [Memcached protocol](https://github.com/memcached/memcached/blob/master/doc/protocol.txt)
 
-A Bloom filter has two parameters: _m_, a maximum size (typically a reasonably large
-multiple of the cardinality of the set to represent) and _k_, the number of hashing
-functions on elements of the set. (The actual hashing functions are important, too,
-but this is not a parameter for this implementation). A Bloom filter is backed by
-a BitSet; a key is represented in the filter by setting the bits at each value of the 
-hashing functions (modulo _m_). Set membership is done by _testing_ whether the
-bits at each value of the hashing functions (again, modulo _m_) are set. If so,
-the item is in the set. If the item is actually in the set, a Bloom filter will
-never fail (the true positive rate is 1.0); but it is susceptible to false
-positives. The art is to choose _k_ and _m_ correctly.
-
-In this implementation, the hashing functions used is a local version of FNV, 
-a non-cryptographic hashing function, seeded with the index number of 
-the kth hashing function.
-    
-This implementation accepts keys for setting as testing as []byte. Thus, to 
-add a string item, "Love":
-
-    uint n = 1000
-    filter := bloom.New(20*n, 5) // load of 20, 5 keys
-    filter.Add([]byte("Love"))
-    
-Similarly, to test if "Love" is in bloom:
-
-    if filter.Test([]byte("Love"))
-    
-For numeric data, I recommend that you look into the binary/encoding library. But,
-for example, to add a uint32 to the filter:
-
-    i := uint32(100)
-    n1 := make([]byte,4)
-    binary.BigEndian.PutUint32(n1,i)
-    f.Add(n1)
-
-Finally, there is a method to estimate the false positive rate of a particular
-bloom filter for a set of size _n_:
-
-    if filter.EstimateFalsePositiveRate(1000) > 0.001 
-    
-Given the particular hashing scheme, it's best to be empirical about this. Note
-that estimating the FP rate will clear the Bloom filter.
-                                                         
-Discussion here: [Bloom filter](https://groups.google.com/d/topic/golang-nuts/6MktecKi1bE/discussion)
-
-Godoc documentation at https://godoc.org/github.com/willf/bloom
+## Misc
+This project has been built for fun and is not intended for production use.
